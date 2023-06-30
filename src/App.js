@@ -1,9 +1,8 @@
 import logo from './logo.svg';
 import './App.css';
 import {useEffect, useState} from "react";
-import pusherConfig from "./pusherConfig";
-import Pusher from "pusher-js";
 import {UserAPI} from "./api";
+import {usePusher} from "./pusher-hook";
 const userAPI = new UserAPI();
 function App() {
     const [token, setToken] = useState('')
@@ -17,43 +16,16 @@ function App() {
         }
         func();
     },[])
-    useEffect( () => {
-        if(!user || !token) return;
-        const pusher = new Pusher(pusherConfig.key, {
-            ...pusherConfig,
-            channelAuthorization: {
-                endpoint: "http://localhost:3005/api/v1/pubsub/auth",
-                headers:{
-                    Authorization: `Bearer ${token}`
-                }
-            }
-        });
 
-        const userChannelName = `private-USER-${user.safe_id}`;
-        const event = 'EVENT';
-        const userChannel = pusher.subscribe(userChannelName);
-        userChannel.bind(event, (data) => {
-            console.log('Received user event:', data);
-        });
+    const { userEvent, clientEvent }  = usePusher(user, token);
 
-        const clientChannelName = `private-CLIENT-${user.currentClientId}`;
-        const clientChannel = pusher.subscribe(clientChannelName);
-        clientChannel.bind(event, (data) => {
-            console.log('Received client event:', data);
-        });
+    useEffect(() => {
+        console.log('====userEvent', userEvent)
+    },[userEvent])
 
-        console.log('=====userChannelName', userChannelName)
-        console.log('=====clientChannelName', clientChannelName)
-
-
-        // Clean up the subscription on component unmount
-        return () => {
-            clientChannel.unbind(event);
-            userChannelName.unbind(event);
-            pusher.unsubscribe(clientChannelName);
-            pusher.unsubscribe(userChannelName);
-        };
-    }, [token, user]);
+    useEffect(() => {
+        console.log('====clientEvent', clientEvent)
+    },[clientEvent])
 
     return (
     <div className="App">
